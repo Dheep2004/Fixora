@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fixora | Sign in</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="login-page">
+  <form class="card login-card" id="login-form">
+    <div class="brand dark">
+      <div class="logo"><img src="assets/fixora-logo.jpg" alt="Fixora logo"></div>
+      <div>Fixora<small>Complaint &amp; Maintenance</small></div>
+    </div>
+
+    <label for="role">I am a</label>
+    <select id="role">
+      <option value="student">Student</option>
+      <option value="admin">Admin</option>
+    </select>
+
+    <label for="email">Email</label>
+    <input id="email" type="email" placeholder="you@college.edu">
+
+    <label for="password">Password</label>
+    <input id="password" type="password">
+
+    <button class="btn primary" type="submit">Sign in</button>
+    <p class="muted">Demo mode: any email and password works. Pick a role to preview that dashboard.</p>
+  </form>
+
+  <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const role = document.getElementById('role').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const user = await api.login(email, password, role);   // swap to real login in api.js
+      saveSession(user);
+      location.href = role === 'admin' ? 'admin-dashboard.html' : 'student-dashboard.html';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fixora | Reports and Analytics</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+      <div class="page-header" id="page-header"></div>
+      <div class="stats" id="stats"></div>
+
+      <div class="columns">
+        <section class="card col-main"><h2>Complaints by category</h2><div id="by-category"></div></section>
+        <section class="card col-main"><h2>Complaints by priority</h2><div id="by-priority"></div></section>
+        <section class="card col-main"><h2>Complaints by status</h2><div id="by-status"></div></section>
+        <section class="card col-main"><h2>Locations with repeat complaints</h2><div id="by-location"></div></section>
+      </div>
+
+      <div><button class="btn primary" id="export-btn">Download all complaints (CSV)</button></div>
+    </main>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    requireLogin('admin');
+    renderSidebar('admin-reports.html');
+    renderHeader('Reports & Analytics', 'Spot patterns and plan maintenance');
+
+    // Turns a list into [{ label, value }] counts for one field
+    function tally(list, field, labels) {
+      return labels.map(label => ({ label, value: countBy(list, field, label) }));
+    }
+
+    (async () => {
+      const complaints = await api.getComplaints();
+      const resolved = countBy(complaints, 'status', 'Resolved');
+      const rate = complaints.length ? Math.round((resolved / complaints.length) * 100) : 0;
+
+      renderStats(document.getElementById('stats'), [
+        { label: 'Total complaints', value: complaints.length },
+        { label: 'Resolution rate',  value: rate + '%', color: '#166534' },
+        { label: 'Open complaints',  value: complaints.length - resolved },
+        { label: 'High priority',    value: countBy(complaints, 'priority', 'High'), color: '#991b1b' },
+      ]);
+
+      renderBars(document.getElementById('by-category'), tally(complaints, 'category', CATEGORIES));
+      renderBars(document.getElementById('by-priority'), tally(complaints, 'priority', ['High', 'Medium', 'Low']));
+      renderBars(document.getElementById('by-status'),   tally(complaints, 'status', ['Pending', 'In progress', 'Resolved']));
+
+      // Locations that appear more than once (repeat problems)
+      const places = {};
+      complaints.forEach(c => { places[c.location] = (places[c.location] || 0) + 1; });
+      const repeats = Object.entries(places).filter(([, n]) => n > 1).map(([label, value]) => ({ label, value }));
+      document.getElementById('by-location').innerHTML = repeats.length ? '' : '<p class="muted">No repeat locations yet.</p>';
+      if (repeats.length) renderBars(document.getElementById('by-location'), repeats);
+
+      // CSV download
+      document.getElementById('export-btn').addEventListener('click', () => {
+        const columns = ['id', 'title', 'category', 'location', 'priority', 'status', 'assignedTo', 'reportedBy'];
+        const lines = [columns.join(',')].concat(complaints.map(c =>
+          columns.map(col => '"' + String(c[col] ?? '').replace(/"/g, '""') + '"').join(',')));
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+        link.download = 'fixora-complaints.csv';
+        link.click();
+      });
+    })();
+  </script>
+</body>
+</html>

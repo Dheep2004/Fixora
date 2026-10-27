@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fixora | Student Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+      <div class="page-header" id="page-header"></div>
+      <div class="stats" id="stats"></div>
+      <section class="card">
+        <div class="card-row">
+          <h2>My complaints</h2>
+          <span style="margin-left:auto"></span>
+          <a class="btn primary" href="new-complaint.html">New complaint</a>
+        </div>
+        <table id="complaints-table"></table>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    const user = requireLogin('student');
+    renderSidebar('student-dashboard.html');
+    renderHeader('Student Dashboard', 'Track the issues you have reported');
+
+    (async () => {
+      const complaints = await api.getMyComplaints(user.name);
+      renderStats(document.getElementById('stats'), [
+        { label: 'Total reported', value: complaints.length },
+        { label: 'Pending',        value: countBy(complaints, 'status', 'Pending') },
+        { label: 'In progress',    value: countBy(complaints, 'status', 'In progress'), color: '#1e40af' },
+        { label: 'Resolved',       value: countBy(complaints, 'status', 'Resolved'),    color: '#166534' },
+      ]);
+      renderComplaintsTable(document.getElementById('complaints-table'), complaints);
+    })();
+  </script>
+</body>
+</html>

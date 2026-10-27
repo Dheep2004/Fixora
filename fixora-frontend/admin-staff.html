@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fixora | Maintenance Staff</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+      <div class="page-header" id="page-header"></div>
+      <div class="stats" id="stats"></div>
+      <section class="card">
+        <div class="card-row"><h2>Staff and workload</h2></div>
+        <table id="staff-table"></table>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    requireLogin('admin');
+    renderSidebar('admin-staff.html');
+    renderHeader('Maintenance Staff', 'See who is available and what each person is working on');
+
+    (async () => {
+      const [staff, complaints] = await Promise.all([api.getStaff(), api.getComplaints()]);
+
+      // Add each person's open (not resolved) complaints
+      const rows = staff.map(person => {
+        const open = complaints.filter(c => c.assignedTo === person.key && c.status !== 'Resolved');
+        return { ...person, open };
+      });
+      const busy = rows.filter(r => r.open.length > 0).length;
+
+      renderStats(document.getElementById('stats'), [
+        { label: 'Total staff', value: rows.length },
+        { label: 'Busy',        value: busy,               color: '#92400e' },
+        { label: 'Available',   value: rows.length - busy, color: '#166534' },
+        { label: 'Unassigned complaints', value: complaints.filter(c => !c.assignedTo && c.status !== 'Resolved').length, color: '#991b1b' },
+      ]);
+
+      document.getElementById('staff-table').innerHTML = `
+        <thead><tr><th>NAME</th><th>TRADE</th><th>PHONE</th><th>STATUS</th><th>OPEN COMPLAINTS</th></tr></thead>
+        <tbody>${rows.map(r => `
+          <tr>
+            <td><b>${esc(r.name)}</b></td>
+            <td>${esc(r.trade)}</td>
+            <td>${esc(r.phone)}</td>
+            <td>${r.open.length ? badge('In progress').replace('In progress', 'Busy') : badge('Resolved').replace('Resolved', 'Available')}</td>
+            <td>${r.open.map(c => `<a href="track-complaint.html?id=${encodeURIComponent(c.id)}">${esc(c.id)}</a>`).join(', ') || '<span class="muted">None</span>'}</td>
+          </tr>`).join('')}</tbody>`;
+    })();
+  </script>
+</body>
+</html>

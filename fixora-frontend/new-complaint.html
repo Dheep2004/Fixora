@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fixora | New Complaint</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+      <div class="page-header" id="page-header"></div>
+
+      <div class="columns">
+        <form class="card col-main" id="complaint-form">
+          <div>Category</div>
+          <div class="chips" id="category-chips"></div>
+
+          <div class="form-row">
+            <div><label for="block">Block / Building</label><input id="block" required placeholder="Block A"></div>
+            <div><label for="room">Room / Area</label><input id="room" required placeholder="Lab 3"></div>
+          </div>
+
+          <label for="title">Issue title</label>
+          <input id="title" required placeholder="Switchboard sparking near the door">
+
+          <label for="description">Description</label>
+          <textarea id="description" rows="4" required></textarea>
+
+          <label for="photos">Photos (optional)</label>
+          <input id="photos" type="file" accept="image/*" multiple>
+
+          <div class="card-row" style="margin-top:18px">
+            <span class="muted">Auto-suggested priority:</span> <span id="priority-badge"></span>
+            <span style="margin-left:auto"></span>
+            <button class="btn primary" type="submit">Submit complaint</button>
+          </div>
+          <div id="message"></div>
+        </form>
+
+        <div class="col-side">
+          <section class="alert" id="duplicate-box" hidden></section>
+          <section class="card">
+            <h2>Tips</h2>
+            <p class="muted">Add the exact room and a clear photo so maintenance can find the problem quickly.
+              Words like "spark", "leak" or "fire" raise the priority automatically.</p>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    const user = requireLogin('student');
+    renderSidebar('new-complaint.html');
+    renderHeader('Submit a Complaint', 'Tell us what is wrong and where');
+
+    const form = document.getElementById('complaint-form');
+
+    // Category chips (radio buttons styled as pills)
+    document.getElementById('category-chips').innerHTML = CATEGORIES.map((name, i) => `
+      <input type="radio" name="category" id="cat-${i}" value="${name}" ${i === 0 ? 'checked' : ''}>
+      <label for="cat-${i}">${name}</label>`).join('');
+
+    // Simple keyword-based priority suggestion (replace with backend/AI logic later)
+    function suggestPriority(text) {
+      const t = text.toLowerCase();
+      if (/(spark|fire|leak|short circuit|shock|flood)/.test(t)) return 'High';
+      if (/(not working|broken|overflow)/.test(t)) return 'Medium';
+      return 'Low';
+    }
+    function updatePriority() {
+      const text = document.getElementById('title').value + ' ' + document.getElementById('description').value;
+      document.getElementById('priority-badge').innerHTML = badge(suggestPriority(text));
+    }
+    document.getElementById('title').addEventListener('input', updatePriority);
+    document.getElementById('description').addEventListener('input', updatePriority);
+    updatePriority();
+
+    // Duplicate check when block/room are filled in
+    async function checkDuplicate() {
+      const block = document.getElementById('block').value.trim();
+      const room = document.getElementById('room').value.trim();
+      const box = document.getElementById('duplicate-box');
+      if (!block || !room) { box.hidden = true; return; }
+      const match = await api.checkDuplicate(`${room}, ${block}`);
+      box.hidden = !match;
+      if (match) {
+        box.innerHTML = `<b>Similar complaint found</b><p>${esc(match.id)} "${esc(match.title)}" is already
+          ${esc(match.status)}. Follow it instead of filing a duplicate.</p>
+          <a href="track-complaint.html?id=${encodeURIComponent(match.id)}"><b>View ${esc(match.id)}</b></a>`;
+      }
+    }
+    document.getElementById('block').addEventListener('blur', checkDuplicate);
+    document.getElementById('room').addEventListener('blur', checkDuplicate);
+
+    // Submit
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const text = document.getElementById('title').value + ' ' + document.getElementById('description').value;
+      const complaint = await api.createComplaint({
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        category: form.category.value,
+        location: `${document.getElementById('room').value}, ${document.getElementById('block').value}`,
+        priority: suggestPriority(text),
+        reportedBy: user.name,
+        // photos: document.getElementById('photos').files  -> send as FormData when backend is ready
+      });
+      document.getElementById('message').innerHTML =
+        `<p class="alert success">Complaint ${esc(complaint.id)} submitted. Redirecting to your dashboard...</p>`;
+      setTimeout(() => { location.href = 'student-dashboard.html'; }, 1200);
+    });
+  </script>
+</body>
+</html>

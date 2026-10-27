@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fixora | Complaint Details</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+      <div class="page-header" id="page-header"></div>
+      <div class="columns">
+        <section class="card col-main" id="timeline-card"></section>
+        <div class="col-side">
+          <section class="card" id="details-card"></section>
+          <section class="card" id="comments-card"></section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    const user = requireLogin();                      // both roles can open this page
+    renderSidebar('track-complaint.html');
+
+    // Complaint id comes from the URL: track-complaint.html?id=C-1047
+    const defaultId = user.role === 'admin' ? 'C-1047' : 'C-1040';
+    const complaintId = new URLSearchParams(location.search).get('id') || defaultId;
+
+    const STEPS = ['Submitted', 'Assigned', 'In progress', 'Resolved', 'Feedback'];
+
+    // How many timeline steps are finished for a complaint
+    function stepsDone(c) {
+      if (c.status === 'Resolved') return 4;
+      if (c.status === 'In progress') return 3;
+      return c.assignedTo ? 2 : 1;
+    }
+
+    async function load() {
+      const c = await api.getComplaint(complaintId);
+      if (!c) {
+        document.getElementById('timeline-card').textContent = 'Complaint not found.';
+        return;
+      }
+      renderHeader('Complaint ' + c.id, `${c.title} · ${c.location}`);
+
+      // Timeline
+      const done = stepsDone(c);
+      document.getElementById('timeline-card').innerHTML = `
+        <div class="card-row"><h2>Status timeline</h2>${badge(c.status)}${badge(c.priority)}</div>
+        ${STEPS.map((name, i) => `
+          <div class="step ${i < done ? 'done' : ''}">
+            <div class="dot">${i + 1}</div><div><b>${name}</b></div>
+          </div>`).join('')}`;
+
+      // Details (+ admin actions)
+      const adminActions = user.role !== 'admin' ? '' : `
+        <label for="staff">Assign to</label>
+        <select id="staff">${STAFF.map(s => `<option ${s === c.assignedTo ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
+        <div class="card-row" style="margin-top:12px">
+          <button class="btn primary" id="assign-btn">Assign staff</button>
+          <button class="btn" id="escalate-btn">Escalate</button>
+        </div>`;
+      document.getElementById('details-card').innerHTML = `
+        <h2>Details</h2>
+        <p class="muted">Category: ${esc(c.category)}<br>
+        Reported by: ${esc(c.reportedBy)}<br>
+        Assigned to: ${esc(c.assignedTo || 'Unassigned')}</p>${adminActions}`;
+
+      // Comments
+      document.getElementById('comments-card').innerHTML = `
+        <h2>Updates and comments</h2>
+        <div id="comment-list">${(c.comments || []).map(m =>
+          `<p><b>${esc(m.author)}:</b> <span class="muted">${esc(m.text)}</span></p>`).join('')}</div>
+        <input id="comment-input" placeholder="Add a comment">`;
+
+      if (user.role === 'admin') {
+        document.getElementById('assign-btn').onclick = async () => {
+          await api.assignStaff(c.id, document.getElementById('staff').value);
+          load();
+        };
+        document.getElementById('escalate-btn').onclick = async () => {
+          await api.escalate(c.id);
+          load();
+        };
+      }
+    }
+    load();
+  </script>
+</body>
+</html>
