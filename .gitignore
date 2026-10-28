@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+fixora-backend/node_modules/
+fixora-frontend/node_modules/
+
+# Environment variables
+.env
+fixora-backend/.env
+fixora-frontend/.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build output
+dist/
+build/

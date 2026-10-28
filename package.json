@@ -1,0 +1,31 @@
+{
+  "name": "fixora",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "install:backend": "npm install --prefix fixora-backend",
+    "install:frontend": "npm install --prefix fixora-frontend",
+    "install:all": "npm run install:backend",
+    "start:backend": "npm run start --prefix fixora-backend",
+    "start:backend:dev": "npm run dev --prefix fixora-backend",
+    "start:frontend": "npm start --prefix fixora-frontend",
+    "dev": "concurrently \"npm run start:backend:dev\" \"npm run start:frontend\"",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dheep2004/Fixora.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Dheep2004/Fixora/issues"
+  },
+  "homepage": "https://github.com/Dheep2004/Fixora#readme",
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  }
+}
