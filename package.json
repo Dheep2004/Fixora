@@ -11,7 +11,8 @@
     "start:backend:dev": "npm run dev --prefix fixora-backend",
     "start:frontend": "npm start --prefix fixora-frontend",
     "dev": "concurrently \"npm run start:backend:dev\" \"npm run start:frontend\"",
-    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\""
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "test:backend": "npm test --prefix fixora-backend"
   },
   "repository": {
     "type": "git",
