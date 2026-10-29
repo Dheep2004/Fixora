@@ -11,6 +11,7 @@ fixora-frontend/.env
 # Logs
 logs/
 *.log
+*.pdf
 npm-debug.log*
 
 # OS files
@@ -20,3 +21,11 @@ Thumbs.db
 # Build output
 dist/
 build/
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+
+# Uploaded files
+fixora-backend/uploads/
